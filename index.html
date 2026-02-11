@@ -3,30 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Gestão Financeira - Anual</title>
+    <title>Fluxo de Caixa Pro</title>
     
     <!-- React e ReactDOM via CDN -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel para traduzir JSX -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Tailwind CSS para Estilos -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Configuração do Tailwind -->
+    <!-- Fonte Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: { sans: ['Roboto', 'sans-serif'] },
                     colors: {
                         brand: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            900: '#14532d',
+                            blue: '#1a73e8',
+                            lightBlue: '#e8f0fe',
+                            green: '#188038',
+                            red: '#d93025',
+                            yellow: '#f9ab00',
+                            gray: '#f1f3f4',
+                            dark: '#202124'
                         }
                     }
                 }
@@ -35,13 +40,26 @@
     </script>
 
     <style>
-        body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        /* Barra de rolagem fina para a lista de itens */
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        body { background-color: #ffffff; color: #202124; }
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            border-top: 1px solid #dadce0;
+            border-left: 1px solid #dadce0;
+        }
+        .calendar-cell {
+            border-right: 1px solid #dadce0;
+            border-bottom: 1px solid #dadce0;
+            min-height: 110px;
+        }
+        .fab { box-shadow: 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12); }
+        /* Barra de rolagem personalizada */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
     </style>
 </head>
 <body>
@@ -50,35 +68,49 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- Ícones SVG ---
-        const IconChevronLeft = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>;
-        const IconChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
-        const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
-        const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>;
-        const IconWallet = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>;
-        const IconCalendar = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
-        const IconGrid = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>;
-
-        // --- Utilitários ---
-        const formatCurrency = (value) => {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        // --- Ícones ---
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const icons = {
+                chevronLeft: <path d="M15 18l-6-6 6-6"/>,
+                chevronRight: <path d="M9 18l6-6-6-6"/>,
+                plus: <path d="M12 5v14M5 12h14"/>,
+                menu: <path d="M3 12h18M3 6h18M3 18h18"/>,
+                trash: <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>,
+                edit: <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>,
+                repeat: <path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14m-14 12 4-4-4-4m14 4v1a4 4 0 0 1-4 4H3"/>,
+                chart: <path d="M18 20V10M12 20V4M6 20v-6"/>,
+                calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>
+            };
+            return (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name] || null}
+                </svg>
+            );
         };
+
+        const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
         const generateId = () => Math.random().toString(36).substr(2, 9);
         const monthsList = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-        // --- Componente Principal ---
         const App = () => {
-            // Estado Principal
-            const [viewMode, setViewMode] = useState('month'); // 'month' ou 'year'
+            const [viewMode, setViewMode] = useState('month');
             const [currentDate, setCurrentDate] = useState(new Date());
             const [transactions, setTransactions] = useState([]);
+            const [showSidebar, setShowSidebar] = useState(true);
             
-            // Estado do Modal
-            const [selectedDate, setSelectedDate] = useState(null);
+            // Modal States
             const [isModalOpen, setIsModalOpen] = useState(false);
+            const [selectedDate, setSelectedDate] = useState(null);
+            
+            // Form States
+            const [editingId, setEditingId] = useState(null);
+            const [formDate, setFormDate] = useState('');
             const [desc, setDesc] = useState('');
             const [amount, setAmount] = useState('');
             const [type, setType] = useState('entrada');
+            const [recurrence, setRecurrence] = useState('none');
+            const [installments, setInstallments] = useState(12);
+            const [addCounter, setAddCounter] = useState(true);
 
             // Carregar dados
             useEffect(() => {
@@ -86,316 +118,478 @@
                 if (savedData) {
                     setTransactions(JSON.parse(savedData));
                 } else {
-                    // Dados iniciais de exemplo
+                    // Mock inicial para demonstração
                     const initialData = [];
                     const today = new Date();
-                    for(let m=0; m<12; m++) {
-                        initialData.push({
-                            id: generateId(),
-                            date: `${today.getFullYear()}-${String(m+1).padStart(2,'0')}-05`,
-                            description: 'Salário',
-                            amount: 2500,
-                            type: 'entrada'
-                        });
-                        initialData.push({
-                             id: generateId(),
-                             date: `${today.getFullYear()}-${String(m+1).padStart(2,'0')}-10`,
-                             description: 'Luz',
-                             amount: 150,
-                             type: 'saida'
-                        });
-                    }
+                    initialData.push({ id: generateId(), date: today.toISOString().split('T')[0], description: 'Saldo Inicial', amount: 1000, type: 'entrada' });
                     setTransactions(initialData);
                 }
             }, []);
 
-            // Salvar dados
             useEffect(() => {
                 localStorage.setItem('financeCalendarData', JSON.stringify(transactions));
             }, [transactions]);
 
-            // Navegação
-            const prevPeriod = () => {
-                if(viewMode === 'month') {
-                    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-                } else {
-                    setCurrentDate(new Date(currentDate.getFullYear() - 1, 0, 1));
-                }
-            };
-
-            const nextPeriod = () => {
-                if(viewMode === 'month') {
-                    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-                } else {
-                    setCurrentDate(new Date(currentDate.getFullYear() + 1, 0, 1));
-                }
-            };
-
-            const goToToday = () => setCurrentDate(new Date());
-
-            const goToMonth = (monthIndex) => {
-                const newDate = new Date(currentDate.getFullYear(), monthIndex, 1);
-                setCurrentDate(newDate);
-                setViewMode('month');
-            };
-
-            // Resumo do Mês/Ano Atual
-            const activeSummary = useMemo(() => {
-                let ent = 0, sai = 0;
-                const prefix = viewMode === 'month' 
-                    ? `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-                    : `${currentDate.getFullYear()}-`;
+            // --- Lógica de Fluxo de Caixa (Running Balance) ---
+            const dailyBalances = useMemo(() => {
+                // 1. Ordenar todas as transações por data
+                const sortedTrans = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
                 
-                transactions.forEach(t => {
-                    if (t.date.startsWith(prefix)) {
-                        if (t.type === 'entrada') ent += Number(t.amount);
-                        else sai += Number(t.amount);
-                    }
-                });
-                return { ent, sai, total: ent - sai };
-            }, [transactions, currentDate, viewMode]);
+                const balanceMap = {}; // data -> { transacoes: [], saldoFinal: 0, saldoInicial: 0 }
+                let runningBalance = 0;
 
-            // Modal Handlers
-            const openModal = (day) => {
-                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-                const dayStr = String(day).padStart(2, '0');
-                setSelectedDate(`${currentDate.getFullYear()}-${month}-${dayStr}`);
-                setDesc('');
-                setAmount('');
-                setType('entrada');
+                // Precisamos iterar dia a dia ou transação a transação?
+                // Melhor iterar transações e preencher os dias.
+                
+                // Mapa auxiliar para agrupar por dia
+                const transByDate = {};
+                sortedTrans.forEach(t => {
+                    if (!transByDate[t.date]) transByDate[t.date] = [];
+                    transByDate[t.date].push(t);
+                });
+
+                // Obter intervalo de datas (do primeiro registro até um ano pra frente para projeção)
+                if (sortedTrans.length === 0) return {};
+
+                const firstDate = new Date(sortedTrans[0].date);
+                const lastDate = new Date(currentDate.getFullYear() + 1, 11, 31); // Projeção até final do ano que vem
+                
+                let iterDate = new Date(firstDate);
+                // Começar um pouco antes se a view for anterior
+                const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                if (viewStart < iterDate) iterDate = viewStart;
+
+                while (iterDate <= lastDate) {
+                    const dateKey = iterDate.toISOString().split('T')[0];
+                    const daysTrans = transByDate[dateKey] || [];
+                    
+                    const startBal = runningBalance;
+                    let dayIn = 0;
+                    let dayOut = 0;
+
+                    daysTrans.forEach(t => {
+                        const val = parseFloat(t.amount);
+                        if (t.type === 'entrada') {
+                            runningBalance += val;
+                            dayIn += val;
+                        } else {
+                            runningBalance -= val;
+                            dayOut += val;
+                        }
+                    });
+
+                    balanceMap[dateKey] = {
+                        start: startBal,
+                        end: runningBalance,
+                        in: dayIn,
+                        out: dayOut,
+                        transactions: daysTrans
+                    };
+
+                    iterDate.setDate(iterDate.getDate() + 1);
+                }
+
+                return balanceMap;
+            }, [transactions, currentDate]);
+
+            // Navegação
+            const prev = () => setCurrentDate(new Date(currentDate.getFullYear(), viewMode === 'month' ? currentDate.getMonth() - 1 : currentDate.getMonth() - 12, 1));
+            const next = () => setCurrentDate(new Date(currentDate.getFullYear(), viewMode === 'month' ? currentDate.getMonth() + 1 : currentDate.getMonth() + 12, 1));
+            const today = () => setCurrentDate(new Date());
+
+            // Modal & Form Logic
+            const resetForm = (dateStr) => {
+                setFormDate(dateStr);
+                setDesc(''); setAmount(''); setType('entrada'); 
+                setRecurrence('none'); setInstallments(12); setAddCounter(true);
+                setEditingId(null);
+            };
+
+            const openModal = (dateStr) => {
+                setSelectedDate(dateStr);
+                resetForm(dateStr);
                 setIsModalOpen(true);
+            };
+
+            const handleEdit = (t) => {
+                setEditingId(t.id);
+                setFormDate(t.date);
+                setDesc(t.description);
+                setAmount(t.amount);
+                setType(t.type);
+                setRecurrence('none'); 
             };
 
             const handleSave = (e) => {
                 e.preventDefault();
-                if (!desc || !amount) return;
-                setTransactions([...transactions, {
-                    id: generateId(),
-                    date: selectedDate,
-                    description: desc,
-                    amount: parseFloat(amount),
-                    type
-                }]);
-                setDesc('');
-                setAmount('');
+                if (!desc || !amount || !formDate) return;
+                const val = parseFloat(amount);
+                
+                if (editingId) {
+                    setTransactions(transactions.map(t => t.id === editingId ? { ...t, date: formDate, description: desc, amount: val, type: type } : t));
+                    resetForm(selectedDate);
+                    return;
+                }
+
+                const [y, m, d] = formDate.split('-').map(Number);
+                const count = recurrence === 'none' ? 1 : parseInt(installments) || 1;
+                const newItems = [];
+
+                for (let i = 0; i < count; i++) {
+                    let targetDate;
+                    if (recurrence === 'daily') targetDate = new Date(y, m - 1, d + i);
+                    else if (recurrence === 'monthly') {
+                        const tY = y + Math.floor((m - 1 + i) / 12);
+                        const tM = (m - 1 + i) % 12;
+                        targetDate = new Date(tY, tM, Math.min(d, new Date(tY, tM + 1, 0).getDate()));
+                    }
+                    else if (recurrence === 'weekly') targetDate = new Date(y, m - 1, d + (i * 7));
+                    else if (recurrence === 'yearly') targetDate = new Date(y + i, m - 1, d);
+                    else targetDate = new Date(y, m - 1, d);
+                    
+                    let finalDesc = desc;
+                    if (recurrence !== 'none' && count > 1 && addCounter) finalDesc += ` (${i+1}/${count})`;
+
+                    newItems.push({ id: generateId(), date: targetDate.toISOString().split('T')[0], description: finalDesc, amount: val, type });
+                }
+                setTransactions(prev => [...prev, ...newItems]);
+                resetForm(selectedDate);
             };
 
             const deleteTransaction = (id) => {
-                if(confirm('Excluir transação?')) {
-                    setTransactions(transactions.filter(t => t.id !== id));
+                if(confirm('Apagar esta transação?')) {
+                    setTransactions(prev => prev.filter(t => t.id !== id));
+                    if (editingId === id) resetForm(selectedDate);
                 }
             };
 
-            // --- RENDERIZADORES --- //
+            // --- Componentes de Renderização ---
 
-            const renderCalendar = () => {
+            const renderMonth = () => {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const firstDay = new Date(year, month, 1).getDay(); // 0 = Dom
-
-                const blanks = Array(firstDay).fill(null);
-                const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+                const firstDay = new Date(year, month, 1).getDay();
                 
-                return (
-                    <div className="grid grid-cols-7 gap-2 fade-in">
-                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
-                            <div key={d} className="text-center text-xs font-bold text-gray-400 py-2 uppercase">{d}</div>
-                        ))}
-                        {[...blanks, ...days].map((day, i) => {
-                            if (!day) return <div key={`b-${i}`} className="h-24 md:h-32"></div>;
-                            
-                            const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                            const dayTrans = transactions.filter(t => t.date === dateKey);
-                            
-                            // Cálculo do Saldo do Dia
-                            const dayEnt = dayTrans.filter(t => t.type === 'entrada').reduce((a, b) => a + b.amount, 0);
-                            const daySai = dayTrans.filter(t => t.type === 'saida').reduce((a, b) => a + b.amount, 0);
-                            const dayBal = dayEnt - daySai;
-                            
-                            const isToday = new Date().toISOString().split('T')[0] === dateKey;
+                // Células vazias iniciais
+                const blanks = Array.from({length: firstDay}, (_, i) => ({ day: null, disabled: true }));
+                // Dias do mês
+                const days = Array.from({length: daysInMonth}, (_, i) => ({ day: i + 1, disabled: false }));
+                // Completar grade
+                const allCells = [...blanks, ...days];
+                while (allCells.length < 35) allCells.push({ day: null, disabled: true, next: true }); // Mínimo visual
 
-                            return (
-                                <div key={day} onClick={() => openModal(day)}
-                                    className={`h-24 md:h-32 border rounded-xl p-1.5 flex flex-col cursor-pointer hover:shadow-lg transition-all bg-white relative overflow-hidden ${isToday ? 'ring-2 ring-brand-500 bg-brand-50' : 'border-gray-200'}`}>
-                                    
-                                    {/* Cabeçalho do Dia */}
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className={`text-sm font-bold ml-1 ${isToday ? 'text-brand-600' : 'text-gray-700'}`}>{day}</span>
-                                        {dayBal !== 0 && (
-                                            <span className={`text-[10px] font-bold px-1 rounded ${dayBal >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {dayBal > 0 ? '+' : ''}{Math.round(dayBal)}
+                return (
+                    <div className="flex flex-col h-full bg-white">
+                        <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+                            {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map(d => (
+                                <div key={d} className="py-2 text-center text-xs font-bold text-gray-500 tracking-wider">{d}</div>
+                            ))}
+                        </div>
+                        
+                        <div className="calendar-grid bg-white flex-1">
+                            {allCells.map((cell, i) => {
+                                if (cell.disabled) return <div key={i} className="calendar-cell bg-gray-50/50"></div>;
+
+                                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(cell.day).padStart(2,'0')}`;
+                                const dayData = dailyBalances[dateKey] || { transactions: [], end: 0, start: 0, in: 0, out: 0 };
+                                const isToday = new Date().toISOString().split('T')[0] === dateKey;
+                                const isNegative = dayData.end < 0;
+
+                                return (
+                                    <div 
+                                        key={i}
+                                        onClick={() => openModal(dateKey)}
+                                        className={`calendar-cell relative p-1 transition-all hover:bg-blue-50 cursor-pointer group flex flex-col justify-between
+                                            ${isToday ? 'bg-blue-50/30' : ''}
+                                            ${isNegative ? 'bg-red-50/30' : ''}
+                                        `}
+                                    >
+                                        {/* Cabeçalho do Dia */}
+                                        <div className="flex justify-between items-start px-1">
+                                            <span className={`text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-brand-blue text-white' : 'text-gray-700'}`}>
+                                                {cell.day}
                                             </span>
+                                            {/* Saldo Diário Acumulado (Caixa) */}
+                                            <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${isNegative ? 'bg-red-100 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                Cx: {formatCurrency(dayData.end)}
+                                            </div>
+                                        </div>
+
+                                        {/* Lista de Transações */}
+                                        <div className="flex-1 flex flex-col gap-0.5 overflow-hidden mt-1 px-1">
+                                            {dayData.transactions.slice(0, 3).map(t => (
+                                                <div key={t.id} className={`text-[10px] px-1 rounded truncate flex justify-between ${t.type === 'entrada' ? 'text-green-700 bg-green-50' : 'text-gray-600'}`}>
+                                                    <span className="truncate">{t.description}</span>
+                                                    <span>{Math.round(t.amount)}</span>
+                                                </div>
+                                            ))}
+                                            {dayData.transactions.length > 3 && (
+                                                <div className="text-[9px] text-gray-400 pl-1">+ {dayData.transactions.length - 3} mais</div>
+                                            )}
+                                        </div>
+
+                                        {/* Barrinha de Fluxo Diário */}
+                                        {(dayData.in > 0 || dayData.out > 0) && (
+                                            <div className="h-1 w-full flex mt-1 opacity-50">
+                                                <div style={{width: `${(dayData.in / (dayData.in + dayData.out)) * 100}%`}} className="bg-brand-green"></div>
+                                                <div style={{width: `${(dayData.out / (dayData.in + dayData.out)) * 100}%`}} className="bg-brand-red"></div>
+                                            </div>
                                         )}
                                     </div>
-
-                                    {/* Lista de Itens (NOVO: Mostra descrições) */}
-                                    <div className="flex-1 overflow-y-auto scrollbar-hide space-y-0.5">
-                                        {dayTrans.map(t => (
-                                            <div key={t.id} className="flex items-center justify-between text-[10px] bg-gray-50 rounded px-1 py-0.5">
-                                                <span className="truncate text-gray-600 flex-1">{t.description}</span>
-                                                <span className={`font-medium ml-1 ${t.type === 'entrada' ? 'text-green-600' : 'text-red-500'}`}>
-                                                    {Math.round(t.amount)}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Indicador se houver muitos itens */}
-                                    {dayTrans.length > 4 && (
-                                        <div className="absolute bottom-0 inset-x-0 h-4 bg-gradient-to-t from-white to-transparent"></div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 );
             };
 
-            const renderYearView = () => {
-                const year = currentDate.getFullYear();
-                return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 fade-in">
-                        {monthsList.map((mName, index) => {
-                            const mKey = `${year}-${String(index+1).padStart(2,'0')}`;
-                            let mEnt = 0, mSai = 0;
-                            transactions.forEach(t => {
-                                if(t.date.startsWith(mKey)) {
-                                    if(t.type === 'entrada') mEnt += Number(t.amount);
-                                    else mSai += Number(t.amount);
-                                }
-                            });
-                            const mBal = mEnt - mSai;
-                            const isCurrent = new Date().getMonth() === index && new Date().getFullYear() === year;
+            const renderSidebar = () => {
+                // Filtrar próximas transações a partir de hoje
+                const todayStr = new Date().toISOString().split('T')[0];
+                const sorted = transactions
+                    .filter(t => t.date >= todayStr)
+                    .sort((a,b) => new Date(a.date) - new Date(b.date))
+                    .slice(0, 15);
 
-                            return (
-                                <div key={mName} onClick={() => goToMonth(index)} 
-                                    className={`bg-white p-4 rounded-xl border cursor-pointer hover:shadow-md hover:border-brand-300 transition-all group ${isCurrent ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-200'}`}>
-                                    <div className="flex justify-between items-center mb-3">
-                                        <h3 className={`font-bold ${isCurrent ? 'text-brand-600' : 'text-gray-700'}`}>{mName}</h3>
-                                        <IconChevronRight />
+                return (
+                    <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full shadow-xl z-20 absolute right-0 md:relative">
+                        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                            <h3 className="font-bold text-gray-700 flex items-center gap-2"><Icon name="chart" size={18}/> Previsão Futura</h3>
+                            <button onClick={() => setShowSidebar(false)} className="md:hidden"><Icon name="menu"/></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            
+                            {/* Card de Resumo do Mês Atual */}
+                            <div className="bg-brand-lightBlue p-4 rounded-lg border border-blue-100">
+                                <h4 className="text-xs font-bold text-blue-800 uppercase mb-2">Resumo de {currentDate.toLocaleDateString('pt-BR', {month:'long'})}</h4>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between text-blue-900">
+                                        <span>Entradas:</span>
+                                        <span className="font-bold text-green-600">{formatCurrency(
+                                            transactions.filter(t => t.date.startsWith(`${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}`) && t.type==='entrada')
+                                            .reduce((acc, t) => acc + Number(t.amount), 0)
+                                        )}</span>
                                     </div>
-                                    <div className="space-y-1 text-sm">
-                                        <div className="flex justify-between text-gray-500"><span>Entradas</span><span className="text-green-600">{formatCurrency(mEnt)}</span></div>
-                                        <div className="flex justify-between text-gray-500"><span>Saídas</span><span className="text-red-500">{formatCurrency(mSai)}</span></div>
-                                        <div className="pt-2 border-t mt-2 flex justify-between font-bold">
-                                            <span className="text-xs text-gray-400 uppercase mt-0.5">Saldo</span>
-                                            <span className={mBal >= 0 ? 'text-gray-800' : 'text-red-600'}>{formatCurrency(mBal)}</span>
-                                        </div>
+                                    <div className="flex justify-between text-blue-900">
+                                        <span>Saídas:</span>
+                                        <span className="font-bold text-red-600">{formatCurrency(
+                                            transactions.filter(t => t.date.startsWith(`${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}`) && t.type==='saida')
+                                            .reduce((acc, t) => acc + Number(t.amount), 0)
+                                        )}</span>
                                     </div>
                                 </div>
-                            );
-                        })}
+                            </div>
+
+                            {/* Lista de Próximas Contas */}
+                            <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Próximos Lançamentos</h4>
+                                <div className="space-y-2">
+                                    {sorted.map(t => (
+                                        <div key={t.id} className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded border border-gray-100 hover:border-blue-300 cursor-pointer" onClick={() => openModal(t.date)}>
+                                            <div>
+                                                <div className="font-medium text-gray-700">{t.description}</div>
+                                                <div className="text-xs text-gray-400">{new Date(t.date).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})}</div>
+                                            </div>
+                                            <div className={t.type === 'entrada' ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
+                                                {formatCurrency(t.amount)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {sorted.length === 0 && <p className="text-sm text-gray-400 italic">Nada previsto.</p>}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 );
             };
 
             return (
-                <div className="min-h-screen pb-20">
+                <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
                     {/* Header */}
-                    <header className="bg-white border-b sticky top-0 z-20 shadow-sm">
-                        <div className="max-w-6xl mx-auto px-4 py-3">
-                            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="bg-brand-500 text-white p-2 rounded-lg"><IconWallet /></div>
-                                    <div>
-                                        <h1 className="text-lg font-bold text-gray-800 leading-tight">Gestão Financeira</h1>
-                                        <button onClick={() => setViewMode(viewMode === 'month' ? 'year' : 'month')} 
-                                            className="text-xs text-brand-600 font-medium hover:underline flex items-center gap-1">
-                                            {viewMode === 'month' ? 'Ver Ano Completo' : 'Ver Mês Atual'}
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-                                    <div className="bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 flex-1 min-w-[120px]">
-                                        <p className="text-[10px] text-green-600 uppercase font-bold">Entradas</p>
-                                        <p className="text-sm font-bold text-green-700">{formatCurrency(activeSummary.ent)}</p>
-                                    </div>
-                                    <div className="bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 flex-1 min-w-[120px]">
-                                        <p className="text-[10px] text-red-600 uppercase font-bold">Saídas</p>
-                                        <p className="text-sm font-bold text-red-700">{formatCurrency(activeSummary.sai)}</p>
-                                    </div>
-                                    <div className="bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700 flex-1 min-w-[120px]">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold">Saldo</p>
-                                        <p className={`text-sm font-bold ${activeSummary.total >= 0 ? 'text-white' : 'text-red-300'}`}>{formatCurrency(activeSummary.total)}</p>
-                                    </div>
-                                </div>
+                    <header className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0 z-30 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-brand-blue">
+                                <Icon name="chart" size={28} />
+                                <span className="text-xl font-bold tracking-tight hidden md:block">FluxoPro</span>
                             </div>
-
-                            {/* Controles de Navegação */}
-                            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                                <h2 className="text-xl font-bold text-gray-800 capitalize">
-                                    {viewMode === 'month' 
-                                        ? currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-                                        : `Ano de ${currentDate.getFullYear()}`
-                                    }
-                                </h2>
-                                <div className="flex gap-1">
-                                    <button onClick={prevPeriod} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"><IconChevronLeft /></button>
-                                    <button onClick={goToToday} className="px-3 py-1.5 text-xs font-bold hover:bg-gray-100 rounded-lg border text-gray-600">Hoje</button>
-                                    <button onClick={nextPeriod} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"><IconChevronRight /></button>
-                                </div>
+                            <button onClick={today} className="px-3 py-1 text-sm font-medium border rounded hover:bg-gray-50 text-gray-700">Hoje</button>
+                            <div className="flex items-center gap-1">
+                                <button onClick={prev} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-600"><Icon name="chevronLeft"/></button>
+                                <button onClick={next} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-600"><Icon name="chevronRight"/></button>
                             </div>
+                            <h2 className="text-lg font-medium capitalize text-gray-800">
+                                {viewMode === 'month' ? currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : currentDate.getFullYear()}
+                            </h2>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                             <button onClick={() => setShowSidebar(!showSidebar)} className={`p-2 rounded transition-colors ${showSidebar ? 'bg-blue-50 text-brand-blue' : 'text-gray-500 hover:bg-gray-100'}`}>
+                                <Icon name="menu" />
+                            </button>
                         </div>
                     </header>
 
-                    {/* Conteúdo Principal */}
-                    <main className="max-w-6xl mx-auto px-4 py-6">
-                        {viewMode === 'month' ? renderCalendar() : renderYearView()}
-                    </main>
+                    {/* Corpo */}
+                    <div className="flex flex-1 overflow-hidden relative">
+                        <main className="flex-1 overflow-y-auto bg-white flex flex-col">
+                            {viewMode === 'month' && renderMonth()}
+                        </main>
+                        
+                        {/* Sidebar (Desktop: Relative, Mobile: Absolute) */}
+                        <div className={`transition-all duration-300 ease-in-out ${showSidebar ? 'w-80 opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
+                           {renderSidebar()}
+                        </div>
+                    </div>
 
-                    {/* Modal (Mantido igual, mas agora alimentando a visualização nova) */}
+                    {/* Botão Flutuante */}
+                    <button onClick={() => openModal(new Date().toISOString().split('T')[0])} 
+                        className="fab fixed bottom-6 left-6 md:left-auto md:right-80 mr-4 z-40 bg-white p-3 rounded-full text-brand-blue hover:scale-105 transition-transform">
+                        <Icon name="plus" size={32} className="text-brand-blue"/>
+                    </button>
+
+                    {/* MODAL DETALHADO */}
                     {isModalOpen && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
-                            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden fade-in" onClick={e => e.stopPropagation()}>
-                                <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
-                                    <h3 className="font-bold text-gray-800">
-                                        {new Date(selectedDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
-                                    </h3>
-                                    <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
-                                </div>
-
-                                <div className="p-6">
-                                    <form onSubmit={handleSave} className="space-y-4">
-                                        <div className="flex rounded-lg bg-gray-100 p-1">
-                                            <button type="button" onClick={() => setType('entrada')} className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${type === 'entrada' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>Entrada</button>
-                                            <button type="button" onClick={() => setType('saida')} className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${type === 'saida' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'}`}>Saída</button>
+                        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden fade-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                                {/* Header do Modal: Resumo Diário */}
+                                <div className="bg-gray-50 p-4 border-b">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="text-lg font-bold text-gray-800 capitalize">
+                                            {selectedDate && new Date(selectedDate).toLocaleDateString('pt-BR', {weekday: 'long', day:'numeric', month:'long'})}
+                                        </h3>
+                                        <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700"><Icon name="plus" className="rotate-45" size={24}/></button>
+                                    </div>
+                                    
+                                    {/* DRE DO DIA */}
+                                    <div className="grid grid-cols-3 gap-2 text-center bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Saldo Anterior</p>
+                                            <p className="text-sm font-medium text-gray-600">
+                                                {formatCurrency(dailyBalances[selectedDate]?.start || 0)}
+                                            </p>
+                                        </div>
+                                        <div className="border-x border-gray-100">
+                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Movimento</p>
+                                            <p className={`text-sm font-bold ${(dailyBalances[selectedDate]?.in - dailyBalances[selectedDate]?.out) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                {((dailyBalances[selectedDate]?.in - dailyBalances[selectedDate]?.out) > 0 ? '+' : '')}
+                                                {formatCurrency((dailyBalances[selectedDate]?.in || 0) - (dailyBalances[selectedDate]?.out || 0))}
+                                            </p>
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 uppercase">Descrição</label>
-                                            <input autoFocus type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Mercado" className="w-full border-b-2 border-gray-200 focus:border-brand-500 outline-none py-2 text-lg bg-transparent" required />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-gray-500 uppercase">Valor</label>
-                                            <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0,00" className="w-full border-b-2 border-gray-200 focus:border-brand-500 outline-none py-2 text-lg bg-transparent" required />
-                                        </div>
-                                        <button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 mt-4">
-                                            <IconPlus /> Adicionar
-                                        </button>
-                                    </form>
-
-                                    {/* Lista Detalhada no Modal */}
-                                    <div className="mt-6 pt-4 border-t">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Lançamentos do dia</h4>
-                                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                                            {transactions.filter(t => t.date === selectedDate).map(t => (
-                                                <div key={t.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded group">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={`w-1.5 h-1.5 rounded-full ${t.type === 'entrada' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                                        <span className="text-gray-700">{t.description}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className={`font-medium ${t.type === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
-                                                            {t.type === 'entrada' ? '+' : '-'}{formatCurrency(t.amount)}
-                                                        </span>
-                                                        <button onClick={() => deleteTransaction(t.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><IconTrash /></button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {transactions.filter(t => t.date === selectedDate).length === 0 && <p className="text-sm text-gray-400 italic text-center">Nada lançado ainda.</p>}
+                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Saldo Final</p>
+                                            <p className={`text-sm font-bold ${(dailyBalances[selectedDate]?.end || 0) >= 0 ? 'text-brand-blue' : 'text-red-600'}`}>
+                                                {formatCurrency(dailyBalances[selectedDate]?.end || 0)}
+                                            </p>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-4">
+                                    {/* Lista de Transações */}
+                                    <div className="space-y-2 mb-6">
+                                        {dailyBalances[selectedDate]?.transactions.map(t => (
+                                            <div key={t.id} className={`flex justify-between items-center p-3 rounded-lg border transition-all ${editingId === t.id ? 'bg-orange-50 border-orange-300' : 'bg-white border-gray-100 hover:border-blue-200'}`}>
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    <div className={`p-2 rounded-full ${t.type === 'entrada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                        {t.type === 'entrada' ? <Icon name="chart" size={14}/> : <Icon name="chart" className="rotate-180" size={14}/>}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-medium text-gray-700 text-sm">{t.description}</div>
+                                                        <div className="text-xs text-gray-400">
+                                                            {t.type === 'entrada' ? 'Receita' : 'Despesa'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`font-bold text-sm ${t.type === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {t.type === 'entrada' ? '+' : '-'}{formatCurrency(t.amount)}
+                                                    </span>
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => handleEdit(t)} className="p-1.5 text-gray-400 hover:text-brand-blue hover:bg-blue-50 rounded"><Icon name="edit" size={16}/></button>
+                                                        <button onClick={() => deleteTransaction(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"><Icon name="trash" size={16}/></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {(!dailyBalances[selectedDate]?.transactions || dailyBalances[selectedDate]?.transactions.length === 0) && (
+                                            <div className="text-center py-6 text-gray-400 text-sm">Nenhum lançamento neste dia.</div>
+                                        )}
+                                    </div>
+
+                                    {/* Formulário */}
+                                    <form onSubmit={handleSave} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
+                                            {editingId ? <><Icon name="edit" size={12}/> Editando</> : <><Icon name="plus" size={12}/> Novo Lançamento</>}
+                                        </h4>
+                                        
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <input 
+                                                autoFocus
+                                                type="text" 
+                                                placeholder="Descrição (Ex: Cliente X, Mercado...)" 
+                                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none"
+                                                value={desc}
+                                                onChange={e => setDesc(e.target.value)}
+                                            />
+                                            
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute left-3 top-2 text-gray-400 text-sm">R$</span>
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01" 
+                                                        className="w-full bg-white border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-blue outline-none font-medium" 
+                                                        placeholder="0,00"
+                                                        value={amount}
+                                                        onChange={e => setAmount(e.target.value)}
+                                                    />
+                                                </div>
+                                                <input 
+                                                    type="date" 
+                                                    className="bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-gray-600 outline-none focus:ring-2 focus:ring-brand-blue"
+                                                    value={formDate}
+                                                    onChange={e => setFormDate(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <button type="button" onClick={() => setType('entrada')} className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${type === 'entrada' ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-500'}`}>Entrada</button>
+                                                <button type="button" onClick={() => setType('saida')} className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${type === 'saida' ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-500'}`}>Saída</button>
+                                            </div>
+
+                                            {!editingId && (
+                                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                                                        <Icon name="repeat" size={16}/>
+                                                        <span className="font-medium">Repetir?</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <select value={recurrence} onChange={e => setRecurrence(e.target.value)} className="flex-1 bg-white border border-gray-200 rounded-lg p-2 text-sm outline-none">
+                                                            <option value="none">Não repetir</option>
+                                                            <option value="daily">Diariamente</option>
+                                                            <option value="weekly">Semanalmente</option>
+                                                            <option value="monthly">Mensalmente</option>
+                                                            <option value="yearly">Anualmente</option>
+                                                        </select>
+                                                        {recurrence !== 'none' && (
+                                                            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 w-24">
+                                                                <input type="number" value={installments} onChange={e => setInstallments(e.target.value)} className="w-full text-center text-sm outline-none"/>
+                                                                <span className="text-xs text-gray-400">x</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="flex justify-end pt-2 gap-2">
+                                                {editingId && <button type="button" onClick={() => resetForm(selectedDate)} className="px-4 py-2 text-gray-500 text-sm hover:underline">Cancelar</button>}
+                                                <button type="submit" className="w-full bg-brand-blue hover:bg-blue-700 text-white font-medium py-2 rounded-lg shadow-sm transition-colors">
+                                                    {editingId ? 'Salvar Alterações' : 'Adicionar Lançamento'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
