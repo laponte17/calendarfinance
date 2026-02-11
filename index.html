@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Gestão Financeira - Anual</title>
+    
+    <!-- React e ReactDOM via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para traduzir JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS para Estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Configuração do Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Barra de rolagem fina para a lista de itens */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Ícones SVG ---
+        const IconChevronLeft = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>;
+        const IconChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
+        const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
+        const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>;
+        const IconWallet = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>;
+        const IconCalendar = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
+        const IconGrid = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>;
+
+        // --- Utilitários ---
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        };
+        const generateId = () => Math.random().toString(36).substr(2, 9);
+        const monthsList = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        // --- Componente Principal ---
+        const App = () => {
+            // Estado Principal
+            const [viewMode, setViewMode] = useState('month'); // 'month' ou 'year'
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [transactions, setTransactions] = useState([]);
+            
+            // Estado do Modal
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [desc, setDesc] = useState('');
+            const [amount, setAmount] = useState('');
+            const [type, setType] = useState('entrada');
+
+            // Carregar dados
+            useEffect(() => {
+                const savedData = localStorage.getItem('financeCalendarData');
+                if (savedData) {
+                    setTransactions(JSON.parse(savedData));
+                } else {
+                    // Dados iniciais de exemplo
+                    const initialData = [];
+                    const today = new Date();
+                    for(let m=0; m<12; m++) {
+                        initialData.push({
+                            id: generateId(),
+                            date: `${today.getFullYear()}-${String(m+1).padStart(2,'0')}-05`,
+                            description: 'Salário',
+                            amount: 2500,
+                            type: 'entrada'
+                        });
+                        initialData.push({
+                             id: generateId(),
+                             date: `${today.getFullYear()}-${String(m+1).padStart(2,'0')}-10`,
+                             description: 'Luz',
+                             amount: 150,
+                             type: 'saida'
+                        });
+                    }
+                    setTransactions(initialData);
+                }
+            }, []);
+
+            // Salvar dados
+            useEffect(() => {
+                localStorage.setItem('financeCalendarData', JSON.stringify(transactions));
+            }, [transactions]);
+
+            // Navegação
+            const prevPeriod = () => {
+                if(viewMode === 'month') {
+                    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+                } else {
+                    setCurrentDate(new Date(currentDate.getFullYear() - 1, 0, 1));
+                }
+            };
+
+            const nextPeriod = () => {
+                if(viewMode === 'month') {
+                    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+                } else {
+                    setCurrentDate(new Date(currentDate.getFullYear() + 1, 0, 1));
+                }
+            };
+
+            const goToToday = () => setCurrentDate(new Date());
+
+            const goToMonth = (monthIndex) => {
+                const newDate = new Date(currentDate.getFullYear(), monthIndex, 1);
+                setCurrentDate(newDate);
+                setViewMode('month');
+            };
+
+            // Resumo do Mês/Ano Atual
+            const activeSummary = useMemo(() => {
+                let ent = 0, sai = 0;
+                const prefix = viewMode === 'month' 
+                    ? `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+                    : `${currentDate.getFullYear()}-`;
+                
+                transactions.forEach(t => {
+                    if (t.date.startsWith(prefix)) {
+                        if (t.type === 'entrada') ent += Number(t.amount);
+                        else sai += Number(t.amount);
+                    }
+                });
+                return { ent, sai, total: ent - sai };
+            }, [transactions, currentDate, viewMode]);
+
+            // Modal Handlers
+            const openModal = (day) => {
+                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const dayStr = String(day).padStart(2, '0');
+                setSelectedDate(`${currentDate.getFullYear()}-${month}-${dayStr}`);
+                setDesc('');
+                setAmount('');
+                setType('entrada');
+                setIsModalOpen(true);
+            };
+
+            const handleSave = (e) => {
+                e.preventDefault();
+                if (!desc || !amount) return;
+                setTransactions([...transactions, {
+                    id: generateId(),
+                    date: selectedDate,
+                    description: desc,
+                    amount: parseFloat(amount),
+                    type
+                }]);
+                setDesc('');
+                setAmount('');
+            };
+
+            const deleteTransaction = (id) => {
+                if(confirm('Excluir transação?')) {
+                    setTransactions(transactions.filter(t => t.id !== id));
+                }
+            };
+
+            // --- RENDERIZADORES --- //
+
+            const renderCalendar = () => {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDay = new Date(year, month, 1).getDay(); // 0 = Dom
+
+                const blanks = Array(firstDay).fill(null);
+                const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+                
+                return (
+                    <div className="grid grid-cols-7 gap-2 fade-in">
+                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
+                            <div key={d} className="text-center text-xs font-bold text-gray-400 py-2 uppercase">{d}</div>
+                        ))}
+                        {[...blanks, ...days].map((day, i) => {
+                            if (!day) return <div key={`b-${i}`} className="h-24 md:h-32"></div>;
+                            
+                            const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                            const dayTrans = transactions.filter(t => t.date === dateKey);
+                            
+                            // Cálculo do Saldo do Dia
+                            const dayEnt = dayTrans.filter(t => t.type === 'entrada').reduce((a, b) => a + b.amount, 0);
+                            const daySai = dayTrans.filter(t => t.type === 'saida').reduce((a, b) => a + b.amount, 0);
+                            const dayBal = dayEnt - daySai;
+                            
+                            const isToday = new Date().toISOString().split('T')[0] === dateKey;
+
+                            return (
+                                <div key={day} onClick={() => openModal(day)}
+                                    className={`h-24 md:h-32 border rounded-xl p-1.5 flex flex-col cursor-pointer hover:shadow-lg transition-all bg-white relative overflow-hidden ${isToday ? 'ring-2 ring-brand-500 bg-brand-50' : 'border-gray-200'}`}>
+                                    
+                                    {/* Cabeçalho do Dia */}
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className={`text-sm font-bold ml-1 ${isToday ? 'text-brand-600' : 'text-gray-700'}`}>{day}</span>
+                                        {dayBal !== 0 && (
+                                            <span className={`text-[10px] font-bold px-1 rounded ${dayBal >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {dayBal > 0 ? '+' : ''}{Math.round(dayBal)}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Lista de Itens (NOVO: Mostra descrições) */}
+                                    <div className="flex-1 overflow-y-auto scrollbar-hide space-y-0.5">
+                                        {dayTrans.map(t => (
+                                            <div key={t.id} className="flex items-center justify-between text-[10px] bg-gray-50 rounded px-1 py-0.5">
+                                                <span className="truncate text-gray-600 flex-1">{t.description}</span>
+                                                <span className={`font-medium ml-1 ${t.type === 'entrada' ? 'text-green-600' : 'text-red-500'}`}>
+                                                    {Math.round(t.amount)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Indicador se houver muitos itens */}
+                                    {dayTrans.length > 4 && (
+                                        <div className="absolute bottom-0 inset-x-0 h-4 bg-gradient-to-t from-white to-transparent"></div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            };
+
+            const renderYearView = () => {
+                const year = currentDate.getFullYear();
+                return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 fade-in">
+                        {monthsList.map((mName, index) => {
+                            const mKey = `${year}-${String(index+1).padStart(2,'0')}`;
+                            let mEnt = 0, mSai = 0;
+                            transactions.forEach(t => {
+                                if(t.date.startsWith(mKey)) {
+                                    if(t.type === 'entrada') mEnt += Number(t.amount);
+                                    else mSai += Number(t.amount);
+                                }
+                            });
+                            const mBal = mEnt - mSai;
+                            const isCurrent = new Date().getMonth() === index && new Date().getFullYear() === year;
+
+                            return (
+                                <div key={mName} onClick={() => goToMonth(index)} 
+                                    className={`bg-white p-4 rounded-xl border cursor-pointer hover:shadow-md hover:border-brand-300 transition-all group ${isCurrent ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-200'}`}>
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h3 className={`font-bold ${isCurrent ? 'text-brand-600' : 'text-gray-700'}`}>{mName}</h3>
+                                        <IconChevronRight />
+                                    </div>
+                                    <div className="space-y-1 text-sm">
+                                        <div className="flex justify-between text-gray-500"><span>Entradas</span><span className="text-green-600">{formatCurrency(mEnt)}</span></div>
+                                        <div className="flex justify-between text-gray-500"><span>Saídas</span><span className="text-red-500">{formatCurrency(mSai)}</span></div>
+                                        <div className="pt-2 border-t mt-2 flex justify-between font-bold">
+                                            <span className="text-xs text-gray-400 uppercase mt-0.5">Saldo</span>
+                                            <span className={mBal >= 0 ? 'text-gray-800' : 'text-red-600'}>{formatCurrency(mBal)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen pb-20">
+                    {/* Header */}
+                    <header className="bg-white border-b sticky top-0 z-20 shadow-sm">
+                        <div className="max-w-6xl mx-auto px-4 py-3">
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-brand-500 text-white p-2 rounded-lg"><IconWallet /></div>
+                                    <div>
+                                        <h1 className="text-lg font-bold text-gray-800 leading-tight">Gestão Financeira</h1>
+                                        <button onClick={() => setViewMode(viewMode === 'month' ? 'year' : 'month')} 
+                                            className="text-xs text-brand-600 font-medium hover:underline flex items-center gap-1">
+                                            {viewMode === 'month' ? 'Ver Ano Completo' : 'Ver Mês Atual'}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                                    <div className="bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 flex-1 min-w-[120px]">
+                                        <p className="text-[10px] text-green-600 uppercase font-bold">Entradas</p>
+                                        <p className="text-sm font-bold text-green-700">{formatCurrency(activeSummary.ent)}</p>
+                                    </div>
+                                    <div className="bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 flex-1 min-w-[120px]">
+                                        <p className="text-[10px] text-red-600 uppercase font-bold">Saídas</p>
+                                        <p className="text-sm font-bold text-red-700">{formatCurrency(activeSummary.sai)}</p>
+                                    </div>
+                                    <div className="bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700 flex-1 min-w-[120px]">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">Saldo</p>
+                                        <p className={`text-sm font-bold ${activeSummary.total >= 0 ? 'text-white' : 'text-red-300'}`}>{formatCurrency(activeSummary.total)}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Controles de Navegação */}
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                <h2 className="text-xl font-bold text-gray-800 capitalize">
+                                    {viewMode === 'month' 
+                                        ? currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+                                        : `Ano de ${currentDate.getFullYear()}`
+                                    }
+                                </h2>
+                                <div className="flex gap-1">
+                                    <button onClick={prevPeriod} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"><IconChevronLeft /></button>
+                                    <button onClick={goToToday} className="px-3 py-1.5 text-xs font-bold hover:bg-gray-100 rounded-lg border text-gray-600">Hoje</button>
+                                    <button onClick={nextPeriod} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"><IconChevronRight /></button>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Conteúdo Principal */}
+                    <main className="max-w-6xl mx-auto px-4 py-6">
+                        {viewMode === 'month' ? renderCalendar() : renderYearView()}
+                    </main>
+
+                    {/* Modal (Mantido igual, mas agora alimentando a visualização nova) */}
+                    {isModalOpen && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
+                            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden fade-in" onClick={e => e.stopPropagation()}>
+                                <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
+                                    <h3 className="font-bold text-gray-800">
+                                        {new Date(selectedDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+                                    </h3>
+                                    <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+                                </div>
+
+                                <div className="p-6">
+                                    <form onSubmit={handleSave} className="space-y-4">
+                                        <div className="flex rounded-lg bg-gray-100 p-1">
+                                            <button type="button" onClick={() => setType('entrada')} className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${type === 'entrada' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>Entrada</button>
+                                            <button type="button" onClick={() => setType('saida')} className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${type === 'saida' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'}`}>Saída</button>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase">Descrição</label>
+                                            <input autoFocus type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Mercado" className="w-full border-b-2 border-gray-200 focus:border-brand-500 outline-none py-2 text-lg bg-transparent" required />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase">Valor</label>
+                                            <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0,00" className="w-full border-b-2 border-gray-200 focus:border-brand-500 outline-none py-2 text-lg bg-transparent" required />
+                                        </div>
+                                        <button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 mt-4">
+                                            <IconPlus /> Adicionar
+                                        </button>
+                                    </form>
+
+                                    {/* Lista Detalhada no Modal */}
+                                    <div className="mt-6 pt-4 border-t">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Lançamentos do dia</h4>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                                            {transactions.filter(t => t.date === selectedDate).map(t => (
+                                                <div key={t.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded group">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${t.type === 'entrada' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                                        <span className="text-gray-700">{t.description}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`font-medium ${t.type === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {t.type === 'entrada' ? '+' : '-'}{formatCurrency(t.amount)}
+                                                        </span>
+                                                        <button onClick={() => deleteTransaction(t.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><IconTrash /></button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {transactions.filter(t => t.date === selectedDate).length === 0 && <p className="text-sm text-gray-400 italic text-center">Nada lançado ainda.</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
